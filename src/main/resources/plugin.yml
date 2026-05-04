@@ -2,3 +2,15 @@ name: calitina-plugin
 version: '1.0-SNAPSHOT'
 main: org.alifmis.calitinaPlugin.CalitinaPlugin
 api-version: '1.21'
+folia-supported: true
+
+commands:
+  reinforcedpickaxe:
+    description: Give yourself a Reinforced Pickaxe.
+    usage: /reinforcedpickaxe
+    permission: calitina.reinforcedpickaxe
+
+permissions:
+  calitina.reinforcedpickaxe:
+    description: Allows the player to use /reinforcedpickaxe.
+    default: op
