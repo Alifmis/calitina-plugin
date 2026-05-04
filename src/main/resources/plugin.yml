@@ -1,0 +1,4 @@
+name: calitina-plugin
+version: '1.0-SNAPSHOT'
+main: org.alifmis.calitinaPlugin.CalitinaPlugin
+api-version: '1.21'
