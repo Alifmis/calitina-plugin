@@ -23,9 +23,12 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageAbortEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
+import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -120,6 +123,7 @@ public final class ReinforcedPickaxeListener implements Listener {
         if (result == null) {
             return;
         }
+        result.setAmount(1);
         event.setResult(result);
         event.getInventory().setRepairCost(1);
         event.getInventory().setMaximumRepairCost(1);
@@ -164,6 +168,55 @@ public final class ReinforcedPickaxeListener implements Listener {
             task.cancel();
         }, () -> {
         }, BEACON_CHECK_DELAY_TICKS, BEACON_CHECK_PERIOD_TICKS);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onAnvilResultClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        if (!(event.getInventory() instanceof AnvilInventory inventory)) {
+            return;
+        }
+        if (event.getSlotType() != InventoryType.SlotType.RESULT) {
+            return;
+        }
+        ItemStack result = event.getCurrentItem();
+        if (result == null || result.getType() == Material.AIR) {
+            return;
+        }
+        ItemStack first = inventory.getFirstItem();
+        ItemStack second = inventory.getSecondItem();
+        if (first == null || second == null) {
+            return;
+        }
+        ItemStack ingotStack = ingotItem.isReinforcedIngot(first) ? first
+                : ingotItem.isReinforcedIngot(second) ? second : null;
+        ItemStack armorStack = isArmorItem(first) ? first
+                : isArmorItem(second) ? second : null;
+        if (ingotStack == null || armorStack == null || !isInvisibleArmorResult(result)) {
+            return;
+        }
+        int remainder = ingotStack.getAmount() - 1;
+        if (remainder <= 0) {
+            return;
+        }
+        plugin.getServer().getGlobalRegionScheduler().runDelayed(plugin, task -> {
+            ItemStack currentResult = inventory.getItem(2);
+            if (currentResult != null && currentResult.getType() != Material.AIR) {
+                return;
+            }
+            ItemStack currentIngot = ingotItem.isReinforcedIngot(inventory.getFirstItem())
+                    ? inventory.getFirstItem()
+                    : ingotItem.isReinforcedIngot(inventory.getSecondItem())
+                    ? inventory.getSecondItem() : null;
+            if (currentIngot != null) {
+                return;
+            }
+            for (ItemStack leftover : player.getInventory().addItem(ingotItem.createItem(remainder)).values()) {
+                player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+            }
+        }, 1L);
     }
 
     private void scheduleBreak(Player player, Location location, BlockKey key) {
@@ -247,6 +300,15 @@ public final class ReinforcedPickaxeListener implements Listener {
             return false;
         }
         return beacon.getTier() > 0;
+    }
+
+    private boolean isInvisibleArmorResult(ItemStack itemStack) {
+        Equippable equippable = itemStack.getData(DataComponentTypes.EQUIPPABLE);
+        if (equippable == null || !Key.key("minecraft", "empty").equals(equippable.assetId())) {
+            return false;
+        }
+        Boolean glintOverride = itemStack.getData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE);
+        return Boolean.FALSE.equals(glintOverride);
     }
 
     private record BlockKey(UUID worldId, int x, int y, int z) {
