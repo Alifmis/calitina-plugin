@@ -2,6 +2,7 @@ package org.alifmis.calitinaPlugin;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -32,7 +33,7 @@ public final class ReinforcedIngotItem {
     }
 
     public boolean isReinforcedIngot(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() != Material.IRON_INGOT) {
+        if (itemStack == null || itemStack.getType() != Material.DIAMOND) {
             return false;
         }
         ItemMeta meta = itemStack.getItemMeta();
@@ -45,12 +46,15 @@ public final class ReinforcedIngotItem {
     }
 
     private ItemStack buildTemplate() {
-        ItemStack item = new ItemStack(Material.IRON_INGOT, 1);
+        ItemStack item = new ItemStack(Material.DIAMOND, 1);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Reinforced Ingot", NamedTextColor.WHITE));
+        Enchantment glintEnchantment = Enchantment.getByKey(NamespacedKey.minecraft("mending"));
+        if (glintEnchantment != null) {
+            meta.addEnchant(glintEnchantment, 1, true);
+        }
         meta.getPersistentDataContainer().set(key, PersistentDataType.BYTE, KEY_MARKER);
         item.setItemMeta(meta);
         return item;
     }
 }
-
