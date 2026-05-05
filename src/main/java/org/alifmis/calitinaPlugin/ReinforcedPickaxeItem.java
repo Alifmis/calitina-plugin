@@ -42,10 +42,10 @@ public final class ReinforcedPickaxeItem {
     private ItemStack buildTemplate() {
         ItemStack item = new ItemStack(Material.NETHERITE_PICKAXE, 1);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text("Reinforced Pickaxe", NamedTextColor.LIGHT_PURPLE));
+        meta.displayName(Component.text("特殊的强化镐", NamedTextColor.LIGHT_PURPLE));
         meta.lore(List.of(
-                Component.text("Breaks Reinforced Deepslate in 1 second.", NamedTextColor.GRAY),
-                Component.text("Single-use.", NamedTextColor.GRAY)
+                Component.text("似乎可以破坏强化深板岩...", NamedTextColor.GRAY),
+                Component.text("看起来有点易碎？", NamedTextColor.GRAY)
         ));
         meta.getPersistentDataContainer().set(key, PersistentDataType.BYTE, KEY_MARKER);
         item.setItemMeta(meta);

@@ -48,7 +48,7 @@ public final class ReinforcedIngotItem {
     private ItemStack buildTemplate() {
         ItemStack item = new ItemStack(Material.DIAMOND, 1);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text("Reinforced Ingot", NamedTextColor.WHITE));
+        meta.displayName(Component.text("淬炼成功的隐形之石", NamedTextColor.BLUE));
         Enchantment glintEnchantment = Enchantment.getByKey(NamespacedKey.minecraft("mending"));
         if (glintEnchantment != null) {
             meta.addEnchant(glintEnchantment, 1, true);
