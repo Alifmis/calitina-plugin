@@ -1,11 +1,16 @@
 package org.alifmis.calitinaPlugin;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.Equippable;
+import net.kyori.adventure.key.Key;
+
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -21,6 +26,7 @@ import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
@@ -99,7 +105,24 @@ public final class ReinforcedPickaxeListener implements Listener {
         ItemStack second = event.getInventory().getSecondItem();
         if (pickaxeItem.isReinforcedPickaxe(first) || pickaxeItem.isReinforcedPickaxe(second)) {
             event.setResult(null);
+            return;
         }
+        ItemStack armor = null;
+        if (isArmorItem(first) && ingotItem.isReinforcedIngot(second)) {
+            armor = first;
+        } else if (isArmorItem(second) && ingotItem.isReinforcedIngot(first)) {
+            armor = second;
+        }
+        if (armor == null) {
+            return;
+        }
+        ItemStack result = createInvisibleArmor(armor);
+        if (result == null) {
+            return;
+        }
+        event.setResult(result);
+        event.getInventory().setRepairCost(1);
+        event.getInventory().setMaximumRepairCost(1);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -179,6 +202,39 @@ public final class ReinforcedPickaxeListener implements Listener {
         } else {
             mainHand.setAmount(amount - 1);
         }
+    }
+
+    private ItemStack createInvisibleArmor(ItemStack armor) {
+        ItemStack result = armor.clone();
+        EquipmentSlot slot = getArmorSlot(result.getType());
+        if (slot == null) {
+            return null;
+        }
+        Equippable.Builder builder = Equippable.equippable(slot)
+                .assetId(Key.key("minecraft", "empty"));
+        result.setData(DataComponentTypes.EQUIPPABLE, builder);
+        result.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, Boolean.FALSE);
+        return result;
+    }
+
+    private boolean isArmorItem(ItemStack itemStack) {
+        return itemStack != null && getArmorSlot(itemStack.getType()) != null;
+    }
+
+    private EquipmentSlot getArmorSlot(Material material) {
+        if (Tag.ITEMS_HEAD_ARMOR.isTagged(material)) {
+            return EquipmentSlot.HEAD;
+        }
+        if (Tag.ITEMS_CHEST_ARMOR.isTagged(material)) {
+            return EquipmentSlot.CHEST;
+        }
+        if (Tag.ITEMS_LEG_ARMOR.isTagged(material)) {
+            return EquipmentSlot.LEGS;
+        }
+        if (Tag.ITEMS_FOOT_ARMOR.isTagged(material)) {
+            return EquipmentSlot.FEET;
+        }
+        return null;
     }
 
     private boolean isActiveBeaconBelow(Item item) {
