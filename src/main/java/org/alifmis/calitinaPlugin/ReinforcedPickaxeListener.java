@@ -3,10 +3,14 @@ package org.alifmis.calitinaPlugin;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.Beacon;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -16,19 +20,26 @@ import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 public final class ReinforcedPickaxeListener implements Listener {
     private static final long BREAK_DELAY_TICKS = 20L;
+    private static final long BEACON_CHECK_DELAY_TICKS = 1L;
+    private static final long BEACON_CHECK_PERIOD_TICKS = 5L;
 
     private final Plugin plugin;
     private final ReinforcedPickaxeItem pickaxeItem;
+    private final ReinforcedDeepslateFragmentItem fragmentItem;
+    private final ReinforcedIngotItem ingotItem;
     private final Map<BlockKey, UUID> pendingBreaks = new ConcurrentHashMap<>();
 
-    public ReinforcedPickaxeListener(Plugin plugin, ReinforcedPickaxeItem pickaxeItem) {
+    public ReinforcedPickaxeListener(Plugin plugin, ReinforcedPickaxeItem pickaxeItem, ReinforcedDeepslateFragmentItem fragmentItem, ReinforcedIngotItem ingotItem) {
         this.plugin = plugin;
         this.pickaxeItem = pickaxeItem;
+        this.fragmentItem = fragmentItem;
+        this.ingotItem = ingotItem;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -99,6 +110,39 @@ public final class ReinforcedPickaxeListener implements Listener {
         }
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onItemSpawn(ItemSpawnEvent event) {
+        Item item = event.getEntity();
+        if (!fragmentItem.isReinforcedDeepslateFragment(item.getItemStack())) {
+            return;
+        }
+        item.getScheduler().runAtFixedRate(plugin, task -> {
+            if (!item.isValid() || !fragmentItem.isReinforcedDeepslateFragment(item.getItemStack())) {
+                task.cancel();
+                return;
+            }
+            if (!isActiveBeaconBelow(item)) {
+                return;
+            }
+            ItemStack stack = item.getItemStack();
+            int count = stack.getAmount();
+            int ingots = 0;
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+            for (int i = 0; i < count; i++) {
+                if (random.nextBoolean()) {
+                    ingots++;
+                }
+            }
+            if (ingots <= 0) {
+                item.remove();
+            } else {
+                item.setItemStack(ingotItem.createItem(ingots));
+            }
+            task.cancel();
+        }, () -> {
+        }, BEACON_CHECK_DELAY_TICKS, BEACON_CHECK_PERIOD_TICKS);
+    }
+
     private void scheduleBreak(Player player, Location location, BlockKey key) {
         World world = location.getWorld();
         if (world == null) {
@@ -120,7 +164,7 @@ public final class ReinforcedPickaxeListener implements Listener {
                 return;
             }
             target.setType(Material.AIR, false);
-            world.dropItemNaturally(location, new ItemStack(Material.REINFORCED_DEEPSLATE));
+            world.dropItemNaturally(location, fragmentItem.createItem());
             consumePickaxe(player, mainHand);
         }, BREAK_DELAY_TICKS);
     }
@@ -135,6 +179,18 @@ public final class ReinforcedPickaxeListener implements Listener {
         } else {
             mainHand.setAmount(amount - 1);
         }
+    }
+
+    private boolean isActiveBeaconBelow(Item item) {
+        Block block = item.getLocation().getBlock();
+        Block beaconBlock = block.getType() == Material.BEACON ? block : block.getRelative(BlockFace.DOWN);
+        if (beaconBlock.getType() != Material.BEACON) {
+            return false;
+        }
+        if (!(beaconBlock.getState() instanceof Beacon beacon)) {
+            return false;
+        }
+        return beacon.getTier() > 0;
     }
 
     private record BlockKey(UUID worldId, int x, int y, int z) {
