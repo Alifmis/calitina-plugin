@@ -1,5 +1,6 @@
 package org.alifmis.calitinaPlugin;
 
+import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -43,6 +44,10 @@ public final class ReinforcedDeepslateFragmentItem {
         ItemStack item = new ItemStack(Material.DIAMOND, 1);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("未淬炼的隐形之石", NamedTextColor.GRAY));
+        meta.lore(List.of(
+                Component.text("需要魔法的淬炼...", NamedTextColor.GRAY),
+                Component.text("丢到信标上试试？", NamedTextColor.GRAY)
+        ));
         Enchantment glintEnchantment = Enchantment.getByKey(NamespacedKey.minecraft("mending"));
         if (glintEnchantment != null) {
             meta.addEnchant(glintEnchantment, 1, true);

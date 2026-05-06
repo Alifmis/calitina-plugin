@@ -1,5 +1,6 @@
 package org.alifmis.calitinaPlugin;
 
+import java.util.List;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -49,6 +50,10 @@ public final class ReinforcedIngotItem {
         ItemStack item = new ItemStack(Material.DIAMOND, 1);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("淬炼成功的隐形之石", NamedTextColor.BLUE));
+        meta.lore(List.of(
+                Component.text("似乎可以用铁砧镶到盔甲之中...", NamedTextColor.GRAY),
+                Component.text("可以隐去盔甲的轮廓？", NamedTextColor.GRAY)
+                ));
         Enchantment glintEnchantment = Enchantment.getByKey(NamespacedKey.minecraft("mending"));
         if (glintEnchantment != null) {
             meta.addEnchant(glintEnchantment, 1, true);
