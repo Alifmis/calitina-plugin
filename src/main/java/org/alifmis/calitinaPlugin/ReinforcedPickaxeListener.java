@@ -28,23 +28,25 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
 
 public final class ReinforcedPickaxeListener implements Listener {
     private static final long BREAK_DELAY_TICKS = 20L;
     private static final long BEACON_CHECK_DELAY_TICKS = 1L;
     private static final long BEACON_CHECK_PERIOD_TICKS = 5L;
+    private static final Material OMINOUS_VAULT_BLOCK = resolveMaterial("OMINOUS_VAULT", "VAULT");
 
-    private final Plugin plugin;
+    private final CalitinaPlugin plugin;
     private final ReinforcedPickaxeItem pickaxeItem;
     private final ReinforcedDeepslateFragmentItem fragmentItem;
     private final ReinforcedIngotItem ingotItem;
     private final Map<BlockKey, UUID> pendingBreaks = new ConcurrentHashMap<>();
 
-    public ReinforcedPickaxeListener(Plugin plugin, ReinforcedPickaxeItem pickaxeItem, ReinforcedDeepslateFragmentItem fragmentItem, ReinforcedIngotItem ingotItem) {
+    public ReinforcedPickaxeListener(CalitinaPlugin plugin, ReinforcedPickaxeItem pickaxeItem, ReinforcedDeepslateFragmentItem fragmentItem, ReinforcedIngotItem ingotItem) {
         this.plugin = plugin;
         this.pickaxeItem = pickaxeItem;
         this.fragmentItem = fragmentItem;
@@ -219,6 +221,36 @@ public final class ReinforcedPickaxeListener implements Listener {
         }, 1L);
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onOminousVaultKeyUse(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+        Block clicked = event.getClickedBlock();
+        if (clicked == null || !isOminousVault(clicked)) {
+            return;
+        }
+        ItemStack item = event.getItem();
+        if (item == null || item.getType() != Material.OMINOUS_TRIAL_KEY) {
+            return;
+        }
+        double chance = plugin.getOminousVaultChance();
+        if (chance <= 0.0) {
+            return;
+        }
+        if (ThreadLocalRandom.current().nextDouble() >= chance) {
+            return;
+        }
+        ItemStack reward = pickaxeItem.createItem();
+        for (ItemStack leftover : event.getPlayer().getInventory().addItem(reward).values()) {
+            event.getPlayer().getWorld().dropItemNaturally(event.getPlayer().getLocation(), leftover);
+        }
+        plugin.getLogger().info("Granted Reinforced Pickaxe from ominous vault to " + event.getPlayer().getName());
+    }
+
     private void scheduleBreak(Player player, Location location, BlockKey key) {
         World world = location.getWorld();
         if (world == null) {
@@ -309,6 +341,15 @@ public final class ReinforcedPickaxeListener implements Listener {
         }
         Boolean glintOverride = itemStack.getData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE);
         return Boolean.FALSE.equals(glintOverride);
+    }
+
+    private static Material resolveMaterial(String primary, String fallback) {
+        Material material = Material.matchMaterial(primary);
+        return material != null ? material : Material.matchMaterial(fallback);
+    }
+
+    private boolean isOminousVault(Block block) {
+        return OMINOUS_VAULT_BLOCK != null && block.getType() == OMINOUS_VAULT_BLOCK;
     }
 
     private record BlockKey(UUID worldId, int x, int y, int z) {

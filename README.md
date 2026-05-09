@@ -11,6 +11,7 @@ Minecraft Folia plugin for 1.21.11 that adds a few features to the server
 - Combining any armor with a reinforced ingot in an anvil makes the armor invisible when equipped and removes its glint.
 - Single-use (consumed after one successful break).
 - Enchantments are blocked on this item.
+- Using an ominous trial key on an ominous vault has a configurable chance to grant a reinforced pickaxe.
 
 ## Usage
 
@@ -19,6 +20,16 @@ Minecraft Folia plugin for 1.21.11 that adds a few features to the server
 - Breaking reinforced deepslate drops one reinforced deepslate fragment.
 - Toss fragments onto an active beacon to attempt conversion into reinforced ingots.
 - Combine any armor with a reinforced ingot in an anvil to make the armor invisible.
+- Use an ominous trial key on an ominous vault for a chance to receive a reinforced pickaxe.
+
+## Configuration
+
+`config.yml`
+
+```yaml
+reinforced-pickaxe:
+  ominous-vault-chance: 0.10
+```
 
 ## Build
 
