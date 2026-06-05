@@ -237,6 +237,11 @@ public final class ReinforcedPickaxeListener implements Listener {
         if (item == null || item.getType() != Material.OMINOUS_TRIAL_KEY) {
             return;
         }
+        // Only grant if vault is ACTIVE (vanilla will actually consume the key)
+        if (!(clicked.getBlockData() instanceof org.bukkit.block.data.type.Vault vaultData)
+                || vaultData.getVaultState() != org.bukkit.block.data.type.Vault.State.ACTIVE) {
+            return;
+        }
         double chance = plugin.getOminousVaultChance();
         if (chance <= 0.0) {
             return;
