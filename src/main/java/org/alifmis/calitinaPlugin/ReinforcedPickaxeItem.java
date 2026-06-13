@@ -12,7 +12,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 public final class ReinforcedPickaxeItem {
-    private static final byte KEY_MARKER = 1;
+    private static final byte KEY_MARKER = 2;
 
     private final NamespacedKey key;
     private final ItemStack template;
