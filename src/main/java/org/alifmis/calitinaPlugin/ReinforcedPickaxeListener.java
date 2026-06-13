@@ -18,6 +18,7 @@ import org.bukkit.block.Beacon;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageAbortEvent;
@@ -221,7 +222,7 @@ public final class ReinforcedPickaxeListener implements Listener {
         }, 1L);
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onOminousVaultKeyUse(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
@@ -237,9 +238,8 @@ public final class ReinforcedPickaxeListener implements Listener {
         if (item == null || item.getType() != Material.OMINOUS_TRIAL_KEY) {
             return;
         }
-        // Only grant if vault is ACTIVE (vanilla will actually consume the key)
         if (!(clicked.getBlockData() instanceof org.bukkit.block.data.type.Vault vaultData)
-                || vaultData.getVaultState() != org.bukkit.block.data.type.Vault.State.ACTIVE) {
+                || vaultData.getVaultState() != org.bukkit.block.data.type.Vault.State.UNLOCKING) {
             return;
         }
         double chance = plugin.getOminousVaultChance();
