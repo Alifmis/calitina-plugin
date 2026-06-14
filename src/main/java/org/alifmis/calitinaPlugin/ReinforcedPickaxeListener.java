@@ -46,6 +46,7 @@ public final class ReinforcedPickaxeListener implements Listener {
     private final ReinforcedDeepslateFragmentItem fragmentItem;
     private final ReinforcedIngotItem ingotItem;
     private final Map<BlockKey, UUID> pendingBreaks = new ConcurrentHashMap<>();
+    private final Map<BlockKey, Boolean> scheduledVaultChecks = new ConcurrentHashMap<>();
 
     public ReinforcedPickaxeListener(CalitinaPlugin plugin, ReinforcedPickaxeItem pickaxeItem, ReinforcedDeepslateFragmentItem fragmentItem, ReinforcedIngotItem ingotItem) {
         this.plugin = plugin;
@@ -238,22 +239,33 @@ public final class ReinforcedPickaxeListener implements Listener {
         if (item == null || item.getType() != Material.OMINOUS_TRIAL_KEY) {
             return;
         }
-        if (!(clicked.getBlockData() instanceof org.bukkit.block.data.type.Vault vaultData)
-                || vaultData.getVaultState() != org.bukkit.block.data.type.Vault.State.UNLOCKING) {
+        BlockKey vaultKey = BlockKey.from(clicked);
+        if (scheduledVaultChecks.putIfAbsent(vaultKey, Boolean.TRUE) != null) {
             return;
         }
-        double chance = plugin.getOminousVaultChance();
-        if (chance <= 0.0) {
-            return;
-        }
-        if (ThreadLocalRandom.current().nextDouble() >= chance) {
-            return;
-        }
-        ItemStack reward = pickaxeItem.createItem();
-        for (ItemStack leftover : event.getPlayer().getInventory().addItem(reward).values()) {
-            event.getPlayer().getWorld().dropItemNaturally(event.getPlayer().getLocation(), leftover);
-        }
-        plugin.getLogger().info("Granted Reinforced Pickaxe from ominous vault to " + event.getPlayer().getName());
+        Location loc = clicked.getLocation().clone();
+        UUID playerId = event.getPlayer().getUniqueId();
+        plugin.getServer().getRegionScheduler().runDelayed(plugin, loc, task -> {
+            plugin.getServer().getRegionScheduler().runDelayed(plugin, loc,
+                    t -> scheduledVaultChecks.remove(vaultKey), 16L);
+
+            World world = loc.getWorld();
+            if (world == null) return;
+            Block block = world.getBlockAt(loc);
+            if (!isOminousVault(block)) return;
+            if (!(block.getBlockData() instanceof org.bukkit.block.data.type.Vault vaultData)) return;
+            if (vaultData.getVaultState() != org.bukkit.block.data.type.Vault.State.UNLOCKING) return;
+            Player player = plugin.getServer().getPlayer(playerId);
+            if (player == null) return;
+            double chance = plugin.getOminousVaultChance();
+            if (chance <= 0.0) return;
+            if (ThreadLocalRandom.current().nextDouble() >= chance) return;
+            ItemStack reward = pickaxeItem.createItem();
+            for (ItemStack leftover : player.getInventory().addItem(reward).values()) {
+                player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+            }
+            plugin.getLogger().info("Granted Reinforced Pickaxe from ominous vault to " + player.getName());
+        }, 1L);
     }
 
     private void scheduleBreak(Player player, Location location, BlockKey key) {
