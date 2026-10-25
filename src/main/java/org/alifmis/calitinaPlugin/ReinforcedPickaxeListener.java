@@ -239,6 +239,7 @@ public final class ReinforcedPickaxeListener implements Listener {
         if (item == null || item.getType() != Material.OMINOUS_TRIAL_KEY) {
             return;
         }
+        // 1-tick delayed check: vanilla has processed the key by then; putIfAbsent stops spam
         BlockKey vaultKey = BlockKey.from(clicked);
         if (scheduledVaultChecks.putIfAbsent(vaultKey, Boolean.TRUE) != null) {
             return;
@@ -246,6 +247,7 @@ public final class ReinforcedPickaxeListener implements Listener {
         Location loc = clicked.getLocation().clone();
         UUID playerId = event.getPlayer().getUniqueId();
         plugin.getServer().getRegionScheduler().runDelayed(plugin, loc, task -> {
+            // hold the vault key for 16 ticks (14-tick UNLOCKING window + margin)
             plugin.getServer().getRegionScheduler().runDelayed(plugin, loc,
                     t -> scheduledVaultChecks.remove(vaultKey), 16L);
 
